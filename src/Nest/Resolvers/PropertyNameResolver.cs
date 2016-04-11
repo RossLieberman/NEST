@@ -28,11 +28,15 @@ namespace Nest.Resolvers
 			var ignoreAttrutes = info.GetCustomAttributes(typeof(JsonIgnoreAttribute), true);
 <<<<<<< HEAD
 			if (ignoreAttrutes.Any())
+<<<<<<< HEAD
 				return new[] {new ElasticPropertyAttribute { OptOut = true }};
 =======
 			if (ignoreAttrutes != null && ignoreAttrutes.Any())
 				return new ElasticPropertyAttribute { OptOut = true };
 >>>>>>> parent of 03df70a... Multi Field Mapping via Attributes
+=======
+				return ((IEnumerable<IElasticPropertyAttribute>)new ElasticPropertyAttribute { OptOut = true });
+>>>>>>> parent of 90b8be2... Fix for JSON Attribute JsonIgnore to convert to an IEnumerable of IElasticPropertyAttributes
 
 			return null;
 		}
