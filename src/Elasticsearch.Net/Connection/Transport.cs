@@ -662,7 +662,7 @@ namespace Elasticsearch.Net.Connection
 					var e = this.Serializer.Deserialize<OneToOneServerException>(ms);
 					error = ElasticsearchServerError.Create(e);
 				}
-				catch (Exception)
+				catch (Exception e)
 				{
 					var raw = ms.ToArray().Utf8String();
 				}

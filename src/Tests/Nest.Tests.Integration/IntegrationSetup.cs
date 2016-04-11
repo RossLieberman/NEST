@@ -59,7 +59,7 @@ namespace Nest.Tests.Integration
 					.Refresh()
 				);
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
 
 				throw;
