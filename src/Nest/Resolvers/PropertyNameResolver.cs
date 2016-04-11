@@ -18,16 +18,21 @@ namespace Nest.Resolvers
 	{
 		private static readonly ConcurrentDictionary<Type, ElasticTypeAttribute> CachedTypeLookups =
 			new ConcurrentDictionary<Type, ElasticTypeAttribute>();
-
-		public static IEnumerable<IElasticPropertyAttribute> Property(MemberInfo info)
+		
+		public static IElasticPropertyAttribute Property(MemberInfo info)
 		{
 			var attributes = info.GetCustomAttributes(typeof(IElasticPropertyAttribute), true);
-			if (attributes.Any())
-				return ((IEnumerable<IElasticPropertyAttribute>)attributes);
+			if (attributes != null && attributes.Any())
+				return ((IElasticPropertyAttribute)attributes.First());
 
 			var ignoreAttrutes = info.GetCustomAttributes(typeof(JsonIgnoreAttribute), true);
+<<<<<<< HEAD
 			if (ignoreAttrutes.Any())
 				return new[] {new ElasticPropertyAttribute { OptOut = true }};
+=======
+			if (ignoreAttrutes != null && ignoreAttrutes.Any())
+				return new ElasticPropertyAttribute { OptOut = true };
+>>>>>>> parent of 03df70a... Multi Field Mapping via Attributes
 
 			return null;
 		}
@@ -76,8 +81,8 @@ namespace Nest.Resolvers
 			var name = info.Name;
 			var resolvedName = _settings.DefaultPropertyNameInferrer(name);
 			var att = ElasticAttributes.Property(info);
-			if (att != null && att.Any() != null && !att.First().Name.IsNullOrEmpty())
-				resolvedName = att.First().Name;
+			if (att != null && !att.Name.IsNullOrEmpty())
+				resolvedName = att.Name;
 
 			return resolvedName;
 		}
@@ -127,14 +132,14 @@ namespace Nest.Resolvers
 				var resolvedName = this._settings.DefaultPropertyNameInferrer(name);
 
 				var att = ElasticAttributes.Property(expression.Member);
-				if (att != null && att.Any())
+				if (att != null)
 				{
-					properties.Push(att.First());
+					properties.Push(att);
 				}
-				if (att != null && att.Any() && !att.First().Name.IsNullOrEmpty())
+				if (att != null && !att.Name.IsNullOrEmpty())
 				{
 
-					resolvedName = att.First().Name;
+					resolvedName = att.Name;
 				}
 				stack.Push(resolvedName);
 			}

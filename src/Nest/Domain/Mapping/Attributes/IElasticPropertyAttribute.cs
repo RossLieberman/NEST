@@ -6,8 +6,6 @@
         bool OptOut { get; set; }
         string Name { get; set; }
 
-        string MultiFieldProperyName { get; set; }
-
         FieldType Type { get; }
 
         TermVectorOption TermVector { get; set; }
