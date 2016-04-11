@@ -2,106 +2,103 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Elasticsearch.Net.Connection;
-using Elasticsearch.Net.Providers;
 
-namespace Elasticsearch.Net.ConnectionPool
+namespace Elasticsearch.Net
 {
 	public class StaticConnectionPool : IConnectionPool
 	{
-		private readonly IDateTimeProvider _dateTimeProvider;
-		
-		protected IDictionary<Uri, EndpointState> UriLookup;
-		protected IList<Uri> NodeUris;
-		protected int Current = -1;
-		private Random _random;
+		protected IDateTimeProvider DateTimeProvider { get; }
+		protected Random Random { get; } = new Random();
+		protected bool Randomize { get; }
 
-		public int MaxRetries { get { return NodeUris.Count - 1;  } }
+		protected List<Node> InternalNodes { get; set; }
 
-		public virtual bool AcceptsUpdates { get { return false; } }
+		public virtual IReadOnlyCollection<Node> Nodes => this.InternalNodes;
 
-		public StaticConnectionPool(
-			IEnumerable<Uri> uris, 
-			bool randomizeOnStartup = true, 
-			IDateTimeProvider dateTimeProvider = null)
+		public int MaxRetries => this.InternalNodes.Count - 1;
+
+		public virtual bool SupportsReseeding => false;
+		public virtual bool SupportsPinging => true;
+
+		public virtual void Reseed(IEnumerable<Node> nodes) { } //ignored
+
+		public bool UsingSsl { get; }
+
+		public bool SniffedOnStartup { get; set; }
+
+		public DateTime LastUpdate { get; protected set; }
+
+		public StaticConnectionPool(IEnumerable<Uri> uris, bool randomize = true, IDateTimeProvider dateTimeProvider = null)
+			: this(uris.Select(uri => new Node(uri)), randomize, dateTimeProvider)
+		{ }
+
+		public StaticConnectionPool(IEnumerable<Node> nodes, bool randomize = true, IDateTimeProvider dateTimeProvider = null)
 		{
-			_random = new Random(1337);
-			_dateTimeProvider = dateTimeProvider ?? new DateTimeProvider();
-			var rnd = new Random();
-			uris.ThrowIfEmpty("uris");
-			NodeUris = uris.Distinct().ToList();
-			if (randomizeOnStartup)
-				NodeUris = NodeUris.OrderBy((item) => rnd.Next()).ToList();
-			UriLookup = NodeUris.ToDictionary(k=>k, v=> new EndpointState());
+			nodes.ThrowIfEmpty(nameof(nodes));
+
+			this.Randomize = randomize;
+			this.DateTimeProvider = dateTimeProvider ?? Elasticsearch.Net.DateTimeProvider.Default;
+
+			var nn = nodes.ToList();
+			var uris = nn.Select(n => n.Uri).ToList();
+			if (uris.Select(u => u.Scheme).Distinct().Count() > 1)
+				throw new ArgumentException("Trying to instantiate a connection pool with mixed URI Schemes");
+
+			this.UsingSsl = uris.Any(uri => uri.Scheme == "https");
+
+			this.InternalNodes = nn
+				.OrderBy(item => randomize ? this.Random.Next() : 1)
+				.DistinctBy(n => n.Uri)
+				.ToList();
+			this.LastUpdate = this.DateTimeProvider.Now();
 		}
 
-		public virtual Uri GetNext(int? initialSeed, out int seed, out bool shouldPingHint)
+		protected int GlobalCursor = -1;
+		/// <summary>
+		/// Creates a view of all the live nodes with changing starting positions that wraps over on each call
+		/// e.g Thread A might get 1,2,3,4,5 and thread B will get 2,3,4,5,1.
+		/// if there are no live nodes yields a different dead node to try once
+		/// </summary>
+		public virtual IEnumerable<Node> CreateView(Action<AuditEvent, Node> audit = null)
 		{
-			var count = NodeUris.Count;
-			if (initialSeed.HasValue)
-				initialSeed += 1;
+			//var count = this.InternalNodes.Count;
 
-			//always increment our round robin counter
-			int increment = Interlocked.Increment(ref Current);
-			var initialOffset = initialSeed ?? increment;
-			int i = initialOffset % count, attempts = 0;
-			seed = i;
-			shouldPingHint = false;
-			Uri uri = null;
-			do
+			var now = this.DateTimeProvider.Now();
+			var nodes = this.InternalNodes.Where(n => n.IsAlive || n.DeadUntil <= now)
+				.ToList();
+			var count = nodes.Count;
+			Node node;
+			var globalCursor = Interlocked.Increment(ref GlobalCursor);
+
+			if (count == 0)
 			{
-				uri = this.NodeUris[i];
-				var state = this.UriLookup[uri];
-				lock (state)
+				//could not find a suitable node retrying on first node off globalCursor
+				audit?.Invoke(AuditEvent.AllNodesDead, null);
+				node = this.InternalNodes[globalCursor % this.InternalNodes.Count];
+				node.IsResurrected = true;
+				audit?.Invoke(AuditEvent.Resurrection, node);
+				yield return node;
+				yield break;
+			}
+
+			var localCursor = globalCursor % count;
+
+			for (var attempts = 0; attempts < count; attempts++)
+			{
+				node = nodes[localCursor];
+				localCursor = (localCursor + 1) % count;
+				//if this node is not alive or no longer dead mark it as resurrected
+				if (!node.IsAlive)
 				{
-					var now = _dateTimeProvider.Now();
-					if (state.Date <= now)
-					{
-						if (state.Attemps != 0)
-							shouldPingHint = true;
-
-						state.Attemps = 0;
-						return uri;
-					}
-					Interlocked.Increment(ref Current);
+					audit?.Invoke(AuditEvent.Resurrection, node);
+					node.IsResurrected = true;
 				}
-				Interlocked.Increment(ref state.Attemps);
-				++attempts;
-				i = (++initialOffset) % count;
-				seed = i;
-			} while (attempts < count);
-
-			//could not find a suitable node retrying on node that has been dead longest.
-			return this.NodeUris[i]; 
-		}
-
-		public virtual void MarkDead(Uri uri, int? deadTimeout, int? maxDeadTimeout)
-		{	
-			EndpointState state = null;
-			if (!this.UriLookup.TryGetValue(uri, out state))
-				return;
-			lock(state)
-			{
-				state.Date = this._dateTimeProvider.DeadTime(uri, state.Attemps, deadTimeout, maxDeadTimeout);
+				yield return node;
 			}
 		}
 
-		public virtual void MarkAlive(Uri uri)
-		{
-			EndpointState state = null;
-			if (!this.UriLookup.TryGetValue(uri, out state))
-				return;
-			lock (state)
-			{
-				var aliveTime =this._dateTimeProvider.AliveTime(uri, state.Attemps); 
-				state.Date = aliveTime;
-				state.Attemps = 0;
-			}
-		}
+		void IDisposable.Dispose() => this.DisposeManagedResources();
 
-		public virtual void UpdateNodeList(IList<Uri> newClusterState, Uri sniffNode = null)
-		{
-		}
-
+		protected virtual void DisposeManagedResources() { }
 	}
 }

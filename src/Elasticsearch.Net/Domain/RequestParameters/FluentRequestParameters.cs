@@ -1,15 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
-using System.Linq;
-using System.Text;
-using Elasticsearch.Net.Connection;
-using Elasticsearch.Net.Connection.Configuration;
 
 namespace Elasticsearch.Net
 {
-
 	/// <summary>
 	/// Used by the raw client to compose querystring parameters in a matter that still exposes some xmldocs
 	/// You can always pass a simple NameValueCollection if you want.
@@ -18,57 +12,52 @@ namespace Elasticsearch.Net
 	public abstract class FluentRequestParameters<T> : IRequestParameters 
 		where T : FluentRequestParameters<T>
 	{
+		private IRequestParameters Self => this;
 
-		private IRequestParameters Self { get { return this; } }
+		public abstract HttpMethod DefaultHttpMethod { get; }
 
 		IDictionary<string, object> IRequestParameters.QueryString { get; set; }
-		Func<IElasticsearchResponse, Stream, object> IRequestParameters.DeserializationState { get; set; }
+		Func<IApiCallDetails, Stream, object> IRequestParameters.DeserializationOverride { get; set; }
 		IRequestConfiguration IRequestParameters.RequestConfiguration { get; set; }
 
-		public FluentRequestParameters()
+		protected FluentRequestParameters()
 		{
 			Self.QueryString = new Dictionary<string, object>();
 		}
 
-
-		public T CopyQueryStringValuesFrom(IRequestParameters requestParameters)
+		void IRequestParameters.AddQueryStringValue(string name, object value)
 		{
-			if (requestParameters == null)
-				return (T)this;
-			var from = requestParameters.QueryString;
-			foreach (var k in from.Keys)
-				Self.QueryString[k] = from[k];
-			return (T)this;
+			if (value == null || name.IsNullOrEmpty()) return;
+			Self.QueryString[name] = value;
 		}
 
 		public T AddQueryString(string name, object value)
 		{
-			Self.QueryString[name] = value;
+			Self.AddQueryStringValue(name, value);
 			return (T)this;
-		}
-
-		public T RequestConfiguration(Func<IRequestConfiguration, RequestConfigurationDescriptor> selector)
-		{
-			selector.ThrowIfNull("selector");
-			Self.RequestConfiguration = selector(Self.RequestConfiguration ?? new RequestConfigurationDescriptor());
-			return (T)this;
-		}
-		
-		public T DeserializationState(Func<IElasticsearchResponse, Stream, object> customResponseCreator)
-		{
-			Self.DeserializationState = customResponseCreator;
-			return (T)this;
-		}
-
-		public bool ContainsKey(string name)
-		{
-			return Self.QueryString != null && Self.QueryString.ContainsKey(name);
 		}
 
 		public T RemoveQueryString(string name)
 		{
 			Self.QueryString.Remove(name);
 			return (T)this;
+		}
+
+		public T RequestConfiguration(Func<RequestConfigurationDescriptor, IRequestConfiguration> selector)
+		{
+			Self.RequestConfiguration = selector?.Invoke(new RequestConfigurationDescriptor()) ?? Self.RequestConfiguration;
+			return (T)this;
+		}
+		
+		public T DeserializationOverride(Func<IApiCallDetails, Stream, object> customResponseCreator)
+		{
+			Self.DeserializationOverride = customResponseCreator;
+			return (T)this;
+		}
+
+		public bool ContainsKey(string name)
+		{
+			return Self.QueryString != null && Self.QueryString.ContainsKey(name);
 		}
 
 		public TOut GetQueryStringValue<TOut>(string name)

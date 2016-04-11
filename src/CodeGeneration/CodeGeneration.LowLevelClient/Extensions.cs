@@ -12,15 +12,20 @@ namespace CodeGeneration.LowLevelClient
 		{
 			return items.GroupBy(property).Select(x => x.First());
 		}
+
 		/// <summary>
-		/// Removes _ . but not an underscore at the start of the string, unless the string is _all.
+		/// Removes _ . but not an underscore at the start of the string, unless the string is _all or removeLeadingUnderscore == true.
 		/// </summary>
-		private static Regex _removePunctuationExceptFirstUnderScore = new Regex(@"(?!^_(?!All$))[_\.]");
-		public static string ToPascalCase(this string s)
+		private static readonly Regex RemovePunctuationExceptFirstUnderScore = new Regex(@"(?!^_(?!All$))[_\.]");
+		public static string ToPascalCase(this string s, bool removeLeadingUnderscore = false)
 		{
+			if (string.IsNullOrEmpty(s)) return s;
 			var textInfo = new CultureInfo("en-US").TextInfo;
 			var titleCased = textInfo.ToTitleCase(s.ToLowerInvariant());
-			return _removePunctuationExceptFirstUnderScore.Replace(titleCased, "");
+			var result = RemovePunctuationExceptFirstUnderScore.Replace(titleCased, "");
+			if (removeLeadingUnderscore)
+				result = result.TrimStart('_');
+			return result;
 		}
 	}
 }
