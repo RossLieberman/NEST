@@ -18,23 +18,28 @@ namespace Nest
 
 		[JsonProperty("score_mode")]
 		ScoreMode? ScoreMode { get; set; }
+
+		[JsonProperty("normalize")]
+		bool? Normalize { get; set; }
 	}
-	
+
 	public class RescoreQuery : IRescoreQuery
 	{
 		public QueryContainer Query { get; set; }
 		public double? QueryWeight { get; set; }
 		public double? RescoreQueryWeight { get; set; }
 		public ScoreMode? ScoreMode { get; set; }
+		public bool? Normalize { get; set; }
 	}
 
-	public class RescoreQueryDescriptor<T> :  DescriptorBase<RescoreQueryDescriptor<T>, IRescoreQuery>, IRescoreQuery 
+	public class RescoreQueryDescriptor<T> :  DescriptorBase<RescoreQueryDescriptor<T>, IRescoreQuery>, IRescoreQuery
 		where T : class
 	{
 		QueryContainer IRescoreQuery.Query { get; set; }
 		double? IRescoreQuery.QueryWeight { get; set; }
 		double? IRescoreQuery.RescoreQueryWeight { get; set; }
 		ScoreMode? IRescoreQuery.ScoreMode { get; set; }
+		bool? IRescoreQuery.Normalize { get; set; }
 
 		public virtual RescoreQueryDescriptor<T> QueryWeight(double? queryWeight) => Assign(a => a.QueryWeight = queryWeight);
 
@@ -45,6 +50,8 @@ namespace Nest
 
 		public virtual RescoreQueryDescriptor<T> Query(Func<QueryContainerDescriptor<T>, QueryContainer> query) =>
 			Assign(a => a.Query = query?.InvokeQuery(new QueryContainerDescriptor<T>()));
-		
+
+		public virtual RescoreQueryDescriptor<T> Normalize(bool? normalize) => Assign(a => a.Normalize = normalize);
+
 	}
 }

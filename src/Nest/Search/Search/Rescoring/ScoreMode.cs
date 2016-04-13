@@ -20,6 +20,8 @@ namespace Nest
 		[EnumMember(Value = "total")]
         Total,
 		[EnumMember(Value = "sum")]
-		Sum
-    }
+		Sum,
+		[EnumMember(Value = "replace")]
+		Replace
+	}
 }
