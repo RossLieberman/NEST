@@ -52,7 +52,7 @@ namespace Nest
 		IHighlight Highlight { get; set; }
 
 		[JsonProperty(PropertyName = "rescore")]
-		IRescore Rescore { get; set; }
+		IList<IRescore> Rescore { get; set; }
 
 		[JsonProperty(PropertyName = "fields")]
 		Fields Fields { get; set; }
@@ -116,7 +116,7 @@ namespace Nest
 		public QueryContainer PostFilter { get; set; }
 		public ITopLevelInnerHits InnerHits { get; set; }
 		public QueryContainer Query { get; set; }
-		public IRescore Rescore { get; set; }
+		public IList<IRescore> Rescore { get; set; }
 		public ISuggestContainer Suggest { get; set; }
 		public IHighlight Highlight { get; set; }
 		public AggregationDictionary Aggregations { get; set; }
@@ -159,7 +159,7 @@ namespace Nest
 		public QueryContainer PostFilter { get; set; }
 		public ITopLevelInnerHits InnerHits { get; set; }
 		public QueryContainer Query { get; set; }
-		public IRescore Rescore { get; set; }
+		public IList<IRescore> Rescore { get; set; }
 		public ISuggestContainer Suggest { get; set; }
 		public IHighlight Highlight { get; set; }
 		public AggregationDictionary Aggregations { get; set; }
@@ -211,7 +211,7 @@ namespace Nest
 		IList<ISort> ISearchRequest.Sort { get; set; }
 		ISuggestContainer ISearchRequest.Suggest { get; set; }
 		IHighlight ISearchRequest.Highlight { get; set; }
-		IRescore ISearchRequest.Rescore { get; set; }
+		IList<IRescore> ISearchRequest.Rescore { get; set; }
 		QueryContainer ISearchRequest.Query { get; set; }
 		QueryContainer ISearchRequest.PostFilter { get; set; }
 		Fields ISearchRequest.Fields { get; set; }
@@ -376,7 +376,8 @@ namespace Nest
 		///<summary>
 		///A comma-separated list of fields to return as the field data representation of a field for each hit
 		///</summary>
-		public SearchDescriptor<T> Sort(Func<SortDescriptor<T>, IPromise<IList<ISort>>> selector) => Assign(a => a.Sort = selector?.Invoke(new SortDescriptor<T>())?.Value);
+		public SearchDescriptor<T> Sort(Func<SortDescriptor<T>, IPromise<IList<ISort>>> selector) =>
+			Assign(a => a.Sort = selector?.Invoke(new SortDescriptor<T>())?.Value);
 
 		public SearchDescriptor<T> InnerHits(Func<TopLevelInnerHitsDescriptor<T>, IPromise<ITopLevelInnerHits>> selector) =>
 			Assign(a => a.InnerHits = selector?.Invoke(new TopLevelInnerHitsDescriptor<T>())?.Value);
@@ -384,8 +385,7 @@ namespace Nest
 		///<summary>
 		/// The suggest feature suggests similar looking terms based on a provided text by using a suggester
 		///</summary>
-		public SearchDescriptor<T> Suggest(Func<SuggestContainerDescriptor<T>, IPromise<ISuggestContainer>> selector) =>
-			Assign(a => a.Suggest = selector?.Invoke(new SuggestContainerDescriptor<T>())?.Value);
+		public SearchDescriptor<T> Suggest(Func<SuggestContainerDescriptor<T>, IPromise<ISuggestContainer>> selector) => Assign(a => a.Suggest = selector?.Invoke(new SuggestContainerDescriptor<T>())?.Value);
 
 		/// <summary>
 		/// Describe the query to perform using a query descriptor lambda
@@ -413,7 +413,7 @@ namespace Nest
 		/// <summary>
 		/// Allows you to specify a rescore query
 		/// </summary>
-		public SearchDescriptor<T> Rescore(Func<RescoreDescriptor<T>, IRescore> rescoreSelector) =>
+		public SearchDescriptor<T> Rescore(Func<RescoreDescriptor<T>, IList<IRescore>> rescoreSelector) =>
 			Assign(a => a.Rescore = rescoreSelector?.Invoke(new RescoreDescriptor<T>()));
 
 		public SearchDescriptor<T> ConcreteTypeSelector(Func<dynamic, Hit<dynamic>, Type> typeSelector) =>
