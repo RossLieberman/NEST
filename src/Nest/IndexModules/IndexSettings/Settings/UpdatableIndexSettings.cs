@@ -41,6 +41,7 @@ namespace Nest
 		public const string MergePolicyMaxMergeAtOnce = "index.merge.policy.max_merge_at_once";
 		public const string MergePolicyMaxMergeAtOnceExplicit = "index.merge.policy.max_merge_at_once_explicit";
 		public const string MergePolicyMaxMergedSegment = "index.merge.policy.max_merged_segment";
+		public const string MergePolicyMergeFactor = "index.merge.policy.merge_factor";
 		public const string MergePolicySegmentsPerTier = "index.merge.policy.segments_per_tier";
 		public const string MergePolicyReclaimDeletesWeight = "index.merge.policy.reclaim_deletes_weight";
 

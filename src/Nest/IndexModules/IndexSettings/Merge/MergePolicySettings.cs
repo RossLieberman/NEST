@@ -3,13 +3,13 @@ namespace Nest
 	public interface IMergePolicySettings
 	{
 		/// <summary>
-		/// When expungeDeletes is called, we only merge away a segment if its delete percentage 
-		/// is over this threshold. Default is 10. 
+		/// When expungeDeletes is called, we only merge away a segment if its delete percentage
+		/// is over this threshold. Default is 10.
 		/// </summary>
 		int? ExpungeDeletesAllowed { get; set; }
 
 		/// <summary>
-		/// Segments smaller than this are "rounded up" to this size, i.e. treated as equal (floor) size for merge selection. 
+		/// Segments smaller than this are "rounded up" to this size, i.e. treated as equal (floor) size for merge selection.
 		/// This is to prevent frequent flushing of tiny segments, thus preventing a long tail in the index. Default is 2mb.
 		/// </summary>
 		//TODO map special type for sizes (e.g 5gb, 16mb)
@@ -27,22 +27,31 @@ namespace Nest
 
 		/// <summary>
 		/// Maximum sized segment to produce during normal merging (not explicit optimize).
-		/// This setting is approximate: the estimate of the merged segment size is made by summing 
+		/// This setting is approximate: the estimate of the merged segment size is made by summing
 		/// sizes of to-be-merged segments (compensating for percent deleted docs). Default is 5gb.
 		/// </summary>
 		//TODO map special type for sizes (e.g 5gb, 16mb)
 		string MaxMergedSegment { get; set; }
 
 		/// <summary>
-		/// Sets the allowed number of segments per tier. Smaller values mean more merging but fewer segments. 
-		/// Default is 10. Note, this value needs to be >= than the max_merge_at_once otherwise you’ll force too 
+		/// Determines how often segment indices are merged by index operation. With smaller values, less RAM is used while indexing,
+		/// and searches on unoptimized indices are faster, but indexing speed is slower. With larger values, more RAM is used during
+		/// indexing, and while searches on unoptimized indices are slower, indexing is faster.
+		/// Thus larger values (greater than 10) are best for batch index creation, and smaller values (lower than 10) for indices that
+		/// are interactively maintained. Defaults to 10.
+		/// </summary>
+		int? MergePolicyMergeFactor { get; set; }
+
+		/// <summary>
+		/// Sets the allowed number of segments per tier. Smaller values mean more merging but fewer segments.
+		/// Default is 10. Note, this value needs to be >= than the max_merge_at_once otherwise you’ll force too
 		/// many merges to occur.
 		/// </summary>
 		int? SegmentsPerTier { get; set; }
 
 		/// <summary>
-		/// Controls how aggressively merges that reclaim more deletions are favored. Higher values 
-		/// favor selecting merges that reclaim deletions. A value of 0.0 means deletions don’t 
+		/// Controls how aggressively merges that reclaim more deletions are favored. Higher values
+		/// favor selecting merges that reclaim deletions. A value of 0.0 means deletions don’t
 		/// impact merge selection. Defaults to 2.0
 		/// </summary>
 		double? ReclaimDeletesWeight { get; set; }
@@ -60,13 +69,15 @@ namespace Nest
 		public int? MaxMergeAtOnceExplicit { get; set; }
 		///<inheritdoc/>
 		public string MaxMergedSegment { get; set; }
+		/// <inheritdoc/>
+		public int? MergePolicyMergeFactor { get; set; }
 		///<inheritdoc/>
 		public double? ReclaimDeletesWeight { get; set; }
 		///<inheritdoc/>
 		public int? SegmentsPerTier { get; set; }
 	}
 
-	public class MergePolicySettingsDescriptor 
+	public class MergePolicySettingsDescriptor
 		: DescriptorBase<MergePolicySettingsDescriptor, IMergePolicySettings>, IMergePolicySettings
 	{
 		int? IMergePolicySettings.ExpungeDeletesAllowed { get; set; }
@@ -74,35 +85,39 @@ namespace Nest
 		int? IMergePolicySettings.MaxMergeAtOnce { get; set; }
 		int? IMergePolicySettings.MaxMergeAtOnceExplicit { get; set; }
 		string IMergePolicySettings.MaxMergedSegment { get; set; }
+		int? IMergePolicySettings.MergePolicyMergeFactor { get; set; }
 		double? IMergePolicySettings.ReclaimDeletesWeight { get; set; }
 		int? IMergePolicySettings.SegmentsPerTier { get; set; }
 
 		///<inheritdoc/>
-		public MergePolicySettingsDescriptor ExpungeDeletesAllowed(int? allowed) => 
+		public MergePolicySettingsDescriptor ExpungeDeletesAllowed(int? allowed) =>
 			Assign(a => a.ExpungeDeletesAllowed = allowed);
 
 		///<inheritdoc/>
-		public MergePolicySettingsDescriptor FloorSegment(string floorSegment) => 
+		public MergePolicySettingsDescriptor FloorSegment(string floorSegment) =>
 			Assign(a => a.FloorSegment = floorSegment);
 
 		///<inheritdoc/>
-		public MergePolicySettingsDescriptor MaxMergeAtOnce(int? maxMergeAtOnce) => 
+		public MergePolicySettingsDescriptor MaxMergeAtOnce(int? maxMergeAtOnce) =>
 			Assign(a => a.MaxMergeAtOnce = maxMergeAtOnce);
 
 		///<inheritdoc/>
-		public MergePolicySettingsDescriptor MaxMergeAtOnceExplicit(int? maxMergeOnceAtOnceExplicit) => 
+		public MergePolicySettingsDescriptor MaxMergeAtOnceExplicit(int? maxMergeOnceAtOnceExplicit) =>
 			Assign(a => a.MaxMergeAtOnceExplicit = maxMergeOnceAtOnceExplicit);
 
 		///<inheritdoc/>
-		public MergePolicySettingsDescriptor MaxMergedSegement(string maxMergedSegment) => 
+		public MergePolicySettingsDescriptor MaxMergedSegement(string maxMergedSegment) =>
 			Assign(a => a.MaxMergedSegment = maxMergedSegment);
 
+		public MergePolicySettingsDescriptor MergePolicyMergeFactor(int? mergePolicyMergeFactor) =>
+			Assign(a => a.MergePolicyMergeFactor = mergePolicyMergeFactor);
+
 		///<inheritdoc/>
-		public MergePolicySettingsDescriptor ReclaimDeletesWeight(double? weight) => 
+		public MergePolicySettingsDescriptor ReclaimDeletesWeight(double? weight) =>
 			Assign(a => a.ReclaimDeletesWeight = weight);
 
 		///<inheritdoc/>
-		public MergePolicySettingsDescriptor SegmentsPerTier(int? segmentsPerTier) => 
+		public MergePolicySettingsDescriptor SegmentsPerTier(int? segmentsPerTier) =>
 			Assign(a => a.SegmentsPerTier = segmentsPerTier);
 
 	}

@@ -19,6 +19,7 @@ namespace Tests.IndexModules.IndexSettings.Merge
 				{"index.merge.policy.max_merge_at_once", 10},
 				{"index.merge.policy.max_merge_at_once_explicit", 30},
 				{"index.merge.policy.max_merged_segment", "5gb"},
+				{"index.merge.policy.merge_factor", 10},
 				{"index.merge.policy.segments_per_tier", 10},
 				{"index.merge.policy.reclaim_deletes_weight", 2.0},
 				{"index.merge.scheduler.max_thread_count", 1},
@@ -35,6 +36,7 @@ namespace Tests.IndexModules.IndexSettings.Merge
 						.MaxMergeAtOnce(10)
 						.MaxMergeAtOnceExplicit(30)
 						.MaxMergedSegement("5gb")
+						.MergePolicyMergeFactor(10)
 						.SegmentsPerTier(10)
 						.ReclaimDeletesWeight(2.0)
 					)
@@ -58,6 +60,7 @@ namespace Tests.IndexModules.IndexSettings.Merge
 							MaxMergeAtOnce = 10,
 							MaxMergeAtOnceExplicit = 30,
 							MaxMergedSegment = "5gb",
+							MergePolicyMergeFactor = 10,
 							SegmentsPerTier = 10,
 							ReclaimDeletesWeight = 2.0
 						},
